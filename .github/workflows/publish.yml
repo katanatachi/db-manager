@@ -1,11 +1,13 @@
 name: Publish
+
 on:
   workflow_run:
     workflows: [CI]
     branches: [main]
     types: [completed]
 
-concurrency: ${{ github.workflow }}-${{ github.ref }}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
 
 permissions:
   contents: write
@@ -16,21 +18,23 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 7
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 21.x
-          cache: "pnpm"
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - run: pnpm install --frozen-lockfile
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+          cache: "npm"
+
+      - name: Install Dependencies
+        run: npm ci
+
       - name: Create Release Pull Request or Publish
         id: changesets
         uses: changesets/action@v1
         with:
-          publish: pnpm run release
+          command: release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
